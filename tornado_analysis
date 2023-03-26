@@ -1,0 +1,54 @@
+# Load libraries
+library(GISTools)
+library(sf)
+library(dplyr)
+library(terra)
+library(spData)
+library(tmap)
+library(tigris)
+
+# Load data
+data(tornados)
+tornsf <- st_as_sf(torn)
+us_states_sf <- st_as_sf(us_states)
+
+# Filter tornados data by year and state
+tornsfm <- tornsf %>% 
+  filter(STATE %in% c(27, 38, 46, 55)) %>% 
+  filter(YEAR > 1969 & YEAR < 2005)
+
+# Subset us_states data to include only North Dakota, South Dakota, Minnesota, Wisconsin
+us.states <- subset(us_states_sf, STATE_NAME %in% c("North Dakota", "South Dakota", "Minnesota", "Wisconsin"))
+
+# Plot the tornados and us_states
+qtm(us.states, title = "Tornados in the Northern Midwest, USA") + 
+  qtm(tornsfm) + 
+  tm_compass() + 
+  tm_scale_bar()
+
+# Transform the tornados and highways data to match the same coordinate reference system
+hw <- primary_roads()
+us4states <- st_transform(us.states, crs = st_crs(hw))
+tornsfm <- st_transform(tornsfm, crs = st_crs(hw))
+
+# Clip the highways data to the area of interest
+hw_clip <- hw[us4states, ]
+
+# Buffer the highways data by 25000 meters
+hwbuf <- st_buffer(hw_clip, dist = 25000)
+
+# Identify tornados that are within the buffer zone
+torn_nearhw <- tornsfm[hwbuf, ]
+
+# Count the number of tornados within each state
+torn_by_state <- us4states %>%
+  mutate(torn.count = lengths(st_contains(us4states, torn_nearhw)))
+
+# Plot the tornados, highways, and states
+qtm(torn_nearhw) + 
+  qtm(us.states, title = "Tornados Touchdowns <25km from Major Highways, 1970-2004") + 
+  qtm(hwbuf, fill = "red") + 
+  qtm(hw_clip) + 
+  qtm(tornsfm) + 
+  tm_compass() + 
+  tm_scale_bar()
