@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Midwestern Tornado Analysis with Highways</title>
   </head>
   <body>
     <h1>Midwestern Tornado Analysis with Highways</h1>
